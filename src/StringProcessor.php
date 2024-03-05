@@ -2,6 +2,9 @@
 
 namespace Cli;
 
+/**
+ * @property string $inputString;
+ */
 class StringProcessor
 {
     public string $inputString;
@@ -11,6 +14,11 @@ class StringProcessor
         $this->inputString = $inputString;
     }
 
+    /**
+     * Splits a string into an array of words.
+     * Returns a string with the words expanded backwards.
+     * @return string
+     */
     public function revertCharacters(): string
     {
         $resp = '';
@@ -18,37 +26,25 @@ class StringProcessor
             $arr = explode(' ', $this->inputString);
 
             foreach ($arr as $key => $elem) {
-                $arr[$key] = $this->mb_strev($elem);
+                $arr[$key] = $this->revertWords($elem);
             }
 
-            return implode(' ', $arr);
+            $resp = implode(' ', $arr);
         }
         return $resp;
     }
 
-    private function revertWord($word)
+    /**
+     * Splits the word into an array of characters,
+     * with support for the Cyrillic alphabet.
+     * Returns a string of reversed characters,
+     * preserving the case of the first letter and the location of punctuation characters.
+     * @return string
+     */
+    private function revertWords(string $string, string $encoding = null): string
     {
-        $arr = str_split($this->mb_strev($word));
-
-        $arrRev = str_split(mb_strtolower(preg_replace('/\pP/iu', '', $word)));
-        $num = count($arrRev) - 1;
-
-        for ($i = 0; $i < count($arr); $i++) {
-            if (ctype_punct($arr[$i])) continue;
-            if (ctype_upper($arr[$i])) {
-                $arr[$i] = strtoupper($arrRev[$num]);
-            } else {
-                $arr[$i] = $arrRev[$num];
-            }
-
-            $num--;
-        }
-
-        return implode($arr);
-    }
-
-    private function mb_strev($string, $encoding = null)
-    {
+        $result = '';
+        
         if ($encoding === null) {
             $encoding = mb_detect_encoding($string);
         }
@@ -62,19 +58,38 @@ class StringProcessor
         $reversedLower = array_reverse(mb_str_split(mb_strtolower(preg_replace('/\pP/iu', '', $reversed))));
         $reversed = mb_str_split($reversed);
         $num = count($reversedLower) - 1;
+        $punct = '';
+        $firstUp = false;
 
         for ($i = 0; $i < count($reversed); $i++) {
             if (ctype_punct($reversed[$i])) {
+                $punct = $reversed[$i];
                 continue;
             }
             if (mb_strtolower($reversed[$i]) !== $reversed[$i]) {
-                $reversed[$i] = strtoupper($reversedLower[$num]);
-                $reversed[0] = mb_strtoupper($reversed[0]);
+                $firstUp = true;
+                $result .= $reversedLower[$num];
             } else {
-                $arr[$i] = $reversedLower[$num];
+                $result .= $reversedLower[$num];
             }
             $num--;
         }
-        return implode($reversed);
+
+        if ($firstUp) {
+            $result = mb_str_split($result);
+            $result[0] = mb_strtoupper($result[0]);
+        }
+        if ($punct) {
+            if (is_array($result)) {
+                array_push($result, $punct);
+            } else {
+                $result .= $punct;
+            }
+        }
+
+        if(is_array($result)) {
+            $result = implode($result);
+        }
+        return $result;
     }
 }
